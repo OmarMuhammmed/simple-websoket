@@ -1,48 +1,47 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-
-    
+    <title>Chat</title>
 </head>
 <body>
-    {% csrf_token %}
-    <input id="input" type="text" />
+    <h1>Chat Room</h1>
+
+    <textarea id="chat-log" cols="100" rows="20" readonly></textarea><br>
+    <input id="chat-message-input" type="text" size="100"><br>
+    <button id="chat-message-submit">Send</button>
 
     <script>
-        const socket = new WebSocket('ws://localhost:5000/sad/')
-        socket.onopen = () => {
-socket.send(JSON.stringify({"message":"hello world"}))
-        }
 
-        socket.onclose = () => {
-            console.log("closed")
-        }
-
-        socket.onmessage = (message) => {
-            const data = JSON.parse(message.data)
-            console.log(data)
-        }
-
-        document.getElementById('input').onchange = (e) => {
-            let formData = new FormData()
-            formData.append("text", e.target.value)
-            
-            fetch('http://localhost:8000/chat/', {
-            method : 'POST',
-            body : formData,
-            headers: {
-           "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value,
-                   }
-        })
-
-
-        }
-
+        // Connect to WebSocket (ws://localhost:8000/ws/chat/) ws : protocol like (http)
+        const chatSocket = new WebSocket(
+            // protocol +  localhost name  + your path in routing.py    
+            'ws://' + window.location.host + '/ws/chat/'
+                       
+        );
         
+        // function runs where server sends message to clint
+        // e.data is message from server
+        chatSocket.onmessage = function(e) {
+            // change from json to Js object
+            const data = JSON.parse(e.data);
+            // add new message to textarea
+            document.querySelector('#chat-log').value += (data.message + '\n');
+        };
+
+        chatSocket.onclose = function(e) {
+            console.error('Chat socket closed unexpectedly');
+        };
+
+        document.querySelector('#chat-message-submit').onclick = function(e) {
+            // get message user input 
+            const messageInputDom = document.querySelector('#chat-message-input');
+            const message = messageInputDom.value;
+            // sent message to server after change to json 
+            chatSocket.send(JSON.stringify({
+                'message': message
+            }));
+            messageInputDom.value = '';
+        };
     </script>
 </body>
 </html>
